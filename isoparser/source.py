@@ -15,10 +15,11 @@ class SourceError(Exception):
 
 
 class Source(object):
-    def __init__(self):
+    def __init__(self, cache_content=False):
         self._buff = None
         self._sectors = {}
         self.cursor = None
+        self.cache_content = cache_content
 
     def __len__(self):
         return len(self._buff) - self.cursor
@@ -103,7 +104,7 @@ class Source(object):
             return None
         return record.Record(self, length-1)
 
-    def seek(self, start_sector, length=SECTOR_LENGTH):
+    def seek(self, start_sector, length=SECTOR_LENGTH, is_content=False):
         self.cursor = 0
         self._buff = ""
         n_sectors = 1 + (length - 1) // SECTOR_LENGTH
@@ -112,8 +113,9 @@ class Source(object):
         def fetch_needed(need_count):
             data = self._fetch(need_start, need_count)
             self._buff += data
-            for sector_idx in xrange(need_count):
-                self._sectors[need_start + sector_idx] = data[sector_idx*SECTOR_LENGTH:(sector_idx+1)*SECTOR_LENGTH]
+            if not is_content or self.cache_content:
+                for sector_idx in xrange(need_count):
+                    self._sectors[need_start + sector_idx] = data[sector_idx*SECTOR_LENGTH:(sector_idx+1)*SECTOR_LENGTH]
 
         for sector in xrange(start_sector, start_sector + n_sectors):
             if sector in self._sectors:
@@ -134,8 +136,8 @@ class Source(object):
 
 
 class FileSource(Source):
-    def __init__(self, path):
-        super(FileSource, self).__init__()
+    def __init__(self, path, **kwargs):
+        super(FileSource, self).__init__(**kwargs)
         self._file = open(path, 'rb')
 
     def _fetch(self, sector, count=1):
@@ -144,8 +146,8 @@ class FileSource(Source):
 
 
 class HTTPSource(Source):
-    def __init__(self, url):
-        super(HTTPSource, self).__init__()
+    def __init__(self, url, **kwargs):
+        super(HTTPSource, self).__init__(**kwargs)
         self._url = url
 
     def _fetch(self, sector, count=1):

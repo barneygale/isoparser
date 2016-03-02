@@ -1,6 +1,7 @@
 class Record(object):
     def __init__(self, source, length):
         self._source = source
+        self._content = None
         target = source.cursor + length
 
         _                  = source.unpack('B')       # TODO: extended attributes length
@@ -60,8 +61,10 @@ class Record(object):
         Assuming this is a file record, this property contains the file's contents
         """
         assert not self.is_directory
-        self._source.seek(self.location, self.length)
-        return self._source.unpack_all()
+        if self._content is None:
+            self._source.seek(self.location, self.length, is_content=True)
+            self._content = self._source.unpack_all()
+        return self._content
 
 
 
