@@ -15,11 +15,12 @@ class SourceError(Exception):
 
 
 class Source(object):
-    def __init__(self, cache_content=False):
+    def __init__(self, cache_content=False, min_fetch=16):
         self._buff = None
         self._sectors = {}
         self.cursor = None
         self.cache_content = cache_content
+        self.min_fetch = min_fetch
 
     def __len__(self):
         return len(self._buff) - self.cursor
@@ -107,27 +108,32 @@ class Source(object):
     def seek(self, start_sector, length=SECTOR_LENGTH, is_content=False):
         self.cursor = 0
         self._buff = ""
+        do_caching = (not is_content or self.cache_content)
         n_sectors = 1 + (length - 1) // SECTOR_LENGTH
+        fetch_sectors = max(self.min_fetch, n_sectors) if do_caching else n_sectors
         need_start = None
 
         def fetch_needed(need_count):
             data = self._fetch(need_start, need_count)
             self._buff += data
-            if not is_content or self.cache_content:
+            if do_caching:
                 for sector_idx in xrange(need_count):
                     self._sectors[need_start + sector_idx] = data[sector_idx*SECTOR_LENGTH:(sector_idx+1)*SECTOR_LENGTH]
 
-        for sector in xrange(start_sector, start_sector + n_sectors):
+        for sector in xrange(start_sector, start_sector + fetch_sectors):
             if sector in self._sectors:
                 if need_start is not None:
                     fetch_needed(sector - need_start)
                     need_start = None
+                # If we've gotten past the sectors we actually need, don't continue to fetch
+                if sector >= start_sector + n_sectors:
+                    break
                 self._buff += self._sectors[sector]
             elif need_start is None:
                 need_start = sector
 
         if need_start is not None:
-            fetch_needed(start_sector + n_sectors - need_start)
+            fetch_needed(start_sector + fetch_sectors - need_start)
 
         self._buff = self._buff[:length]
 
