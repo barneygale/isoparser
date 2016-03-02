@@ -107,12 +107,26 @@ class Source(object):
         self.cursor = 0
         self._buff = ""
         n_sectors = 1 + (length - 1) // SECTOR_LENGTH
-        for sector in range(start_sector, start_sector + n_sectors):
-            data = self._sectors.get(sector)
-            if data is None:
-                data = self._fetch(sector)
-                self._sectors[sector] = data
+        need_start = None
+
+        def fetch_needed(need_count):
+            data = self._fetch(need_start, need_count)
             self._buff += data
+            for sector_idx in xrange(need_count):
+                self._sectors[need_start + sector_idx] = data[sector_idx*SECTOR_LENGTH:(sector_idx+1)*SECTOR_LENGTH]
+
+        for sector in xrange(start_sector, start_sector + n_sectors):
+            if sector in self._sectors:
+                if need_start is not None:
+                    fetch_needed(sector - need_start)
+                    need_start = None
+                self._buff += self._sectors[sector]
+            elif need_start is None:
+                need_start = sector
+
+        if need_start is not None:
+            fetch_needed(start_sector + n_sectors - need_start)
+
         self._buff = self._buff[:length]
 
     def _fetch(self, sector):
@@ -124,9 +138,9 @@ class FileSource(Source):
         super(FileSource, self).__init__()
         self._file = open(path, 'rb')
 
-    def _fetch(self, sector):
+    def _fetch(self, sector, count=1):
         self._file.seek(sector*SECTOR_LENGTH)
-        return self._file.read(SECTOR_LENGTH)
+        return self._file.read(SECTOR_LENGTH*count)
 
 
 class HTTPSource(Source):
@@ -134,10 +148,10 @@ class HTTPSource(Source):
         super(HTTPSource, self).__init__()
         self._url = url
 
-    def _fetch(self, sector):
+    def _fetch(self, sector, count=1):
         opener = urllib.FancyURLopener()
         opener.http_error_206 = lambda *a, **k: None
         opener.addheader("Range", "bytes=%d-%d" % (
             SECTOR_LENGTH * sector,
-            SECTOR_LENGTH * (sector + 1) - 1))
+            SECTOR_LENGTH * (sector + count) - 1))
         return opener.open(self._url).read()
