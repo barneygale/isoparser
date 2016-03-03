@@ -66,9 +66,12 @@ class ISO(object):
         # Resolve the remainder of the path by walking record children
         for part in path[pivot:]:
             for child in record.children_unsafe:
+                # Must save the cursor since child.name can cause a seek
+                saved_cursor = self._source.save_cursor()
                 if child.name == part:
                     record = child
                     break
+                self._source.restore_cursor(saved_cursor)
             else:
                 raise KeyError(part)
 
