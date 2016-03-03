@@ -36,12 +36,12 @@ class PX(SUSP_Entry):
 
     def __init__(self, source, ext_id_ver, sig_version, length):
         super(PX, self).__init__(source, ext_id_ver, sig_version, length)
-        susp_assert(length == (40 if ext_id_ver == RRIP_112 else 32))
+        susp_assert(length in (32, 40))
         self.mode   = source.unpack_both('I')
         self.nlinks = source.unpack_both('I')
         self.uid    = source.unpack_both('I')
         self.gid    = source.unpack_both('I')
-        self.ino    = source.unpack_both('I') if ext_id_ver == RRIP_112 else None
+        self.ino    = source.unpack_both('I') if length >= 40 else None
 
 class PN(SUSP_Entry):
     _implements = [
