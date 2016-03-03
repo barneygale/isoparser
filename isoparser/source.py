@@ -161,6 +161,9 @@ class FileStream(object):
             self.cur_offset += len(data)
         return data
 
+    def close(self):
+        pass
+
 
 class FileSource(Source):
     def __init__(self, path, **kwargs):

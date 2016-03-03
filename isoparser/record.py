@@ -69,7 +69,7 @@ class Record(object):
     def get_stream(self):
         """
         Assuming this is a file record, return a file-like object with a read() method that can be
-        used to sequentially read chunks from the source.
+        used to sequentially read chunks from the source, along with a close() method.
         """
         assert not self.is_directory
         return self._source.get_stream(self.location, self.length)
