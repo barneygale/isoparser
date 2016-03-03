@@ -66,5 +66,13 @@ class Record(object):
             self._content = self._source.unpack_all()
         return self._content
 
+    def get_stream(self):
+        """
+        Assuming this is a file record, return a file-like object with a read() method that can be
+        used to sequentially read chunks from the source.
+        """
+        assert not self.is_directory
+        return self._source.get_stream(self.location, self.length)
+
 
 

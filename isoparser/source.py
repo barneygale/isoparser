@@ -140,6 +140,27 @@ class Source(object):
     def _fetch(self, sector, count=1):
         raise NotImplementedError
 
+    def get_stream(self, sector, length):
+        raise NotImplementedError
+
+
+class FileStream(object):
+    def __init__(self, file, offset, length):
+        self._file = file
+        self._offset = offset
+        self._length = length
+        self.cur_offset = 0
+
+    def read(self, *args):
+        size = args[0] if args else -1
+        self._file.seek(self._offset + self.cur_offset)
+        if size < 0 or size > self._length - self.cur_offset:
+            size = self._length - self.cur_offset
+        data = self._file.read(size)
+        if data:
+            self.cur_offset += len(data)
+        return data
+
 
 class FileSource(Source):
     def __init__(self, path, **kwargs):
@@ -150,6 +171,9 @@ class FileSource(Source):
         self._file.seek(sector*SECTOR_LENGTH)
         return self._file.read(SECTOR_LENGTH*count)
 
+    def get_stream(self, sector, length):
+        return FileStream(self._file, sector*SECTOR_LENGTH, length)
+
 
 class HTTPSource(Source):
     def __init__(self, url, **kwargs):
@@ -157,9 +181,12 @@ class HTTPSource(Source):
         self._url = url
 
     def _fetch(self, sector, count=1):
+        return self.get_stream(sector, count*SECTOR_LENGTH).read()
+
+    def get_stream(self, sector, length):
         opener = urllib.FancyURLopener()
         opener.http_error_206 = lambda *a, **k: None
         opener.addheader("Range", "bytes=%d-%d" % (
             SECTOR_LENGTH * sector,
-            SECTOR_LENGTH * (sector + count) - 1))
-        return opener.open(self._url).read()
+            SECTOR_LENGTH * sector + length - 1))
+        return opener.open(self._url)
