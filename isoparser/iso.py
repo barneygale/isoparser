@@ -1,3 +1,6 @@
+import susp
+import rockridge
+
 class ISO(object):
     def __init__(self, source):
         self._source = source
@@ -24,13 +27,29 @@ class ISO(object):
         # Save a reference to the root record
         self.root = self.volume_descriptors['primary'].root_record
 
+        # Check to see if SUSP is enabled
+        root_record = self.root.current_directory
+        if root_record.embedded_susp_entries and isinstance(root_record.embedded_susp_entries[0], susp.SP):
+            self._source.susp_starting_index = root_record.embedded_susp_entries[0].len_skp
+            self._source.susp_extensions = [e for e in root_record.susp_entries if isinstance(e, susp.ER)]
+            if any(((er.ext_id, er.ext_ver) in rockridge.EXT_VERSIONS) for er in self._source.susp_extensions):
+                self._source.rockridge = True
+        else:
+            self._source.susp_starting_index = False
+
+
     def record(self, *path):
         """
         Retrieves a record for the given path.
         """
-        path = [part.upper() for part in path]
         record = None
-        pivot = len(path)
+        if self._source.rockridge:
+            # In Rock Ridge mode, we can't use the path table
+            pivot = 0
+        else:
+            path = [part.upper() for part in path]
+            pivot = len(path)
+
 
         # Resolve as much of the path as possible via the path table
         while pivot > 0:
