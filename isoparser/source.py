@@ -137,7 +137,7 @@ class Source(object):
 
         self._buff = self._buff[:length]
 
-    def _fetch(self, sector):
+    def _fetch(self, sector, count=1):
         raise NotImplementedError
 
 
