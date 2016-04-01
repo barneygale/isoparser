@@ -8,6 +8,5 @@ setup(
     url='https://github.com/barneygale/isoparser',
     license='MIT',
     description='Parser for the ISO 9660 disk image format',
-    long_description=open('README.rst').read(),
     packages=["isoparser"],
 )
