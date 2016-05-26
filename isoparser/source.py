@@ -191,6 +191,9 @@ class Source(object):
     def get_stream(self, sector, length):
         raise NotImplementedError
 
+    def close(self):
+        pass
+
 
 class FileStream(object):
     def __init__(self, file, offset, length):
@@ -224,6 +227,9 @@ class FileSource(Source):
 
     def get_stream(self, sector, length):
         return FileStream(self._file, sector*SECTOR_LENGTH, length)
+
+    def close(self):
+        self._file.close()
 
 
 class HTTPSource(Source):
