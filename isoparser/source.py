@@ -115,6 +115,9 @@ class Source(object):
             self._buff += data
         self._buff = self._buff[:length]
 
+    def close(self):
+        pass
+
     def _fetch(self, sector):
         raise NotImplementedError
 
@@ -127,6 +130,9 @@ class FileSource(Source):
     def _fetch(self, sector):
         self._file.seek(sector*SECTOR_LENGTH)
         return self._file.read(SECTOR_LENGTH)
+
+    def close(self):
+        self._file.close()
 
 
 class HTTPSource(Source):

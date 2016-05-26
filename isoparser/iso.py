@@ -24,6 +24,15 @@ class ISO(object):
         # Save a reference to the root record
         self.root = self.volume_descriptors['primary'].root_record
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def close(self):
+        self._source.close()
+
     def record(self, *path):
         """
         Retrieves a record for the given path.
