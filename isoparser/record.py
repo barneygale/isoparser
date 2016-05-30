@@ -12,8 +12,8 @@ class Record(object):
         self.length        = source.unpack_both('I')
         self.datetime      = source.unpack_dir_datetime()
         flags              = source.unpack('B')
-        self.is_hidden     = flags & 1
-        self.is_directory  = flags & 2
+        self.is_hidden     = bool(flags & 1)
+        self.is_directory  = bool(flags & 2)
         # TODO: other flags
         _                  = source.unpack('B')       # TODO: interleave unit size
         _                  = source.unpack('B')       # TODO: interleave gap size
