@@ -15,10 +15,12 @@ class SourceError(Exception):
 
 
 class Source(object):
-    def __init__(self):
+    def __init__(self, cache_content=False, min_fetch=16):
         self._buff = None
         self._sectors = {}
         self.cursor = None
+        self.cache_content = cache_content
+        self.min_fetch = min_fetch
 
     def __len__(self):
         return len(self._buff) - self.cursor
@@ -103,41 +105,61 @@ class Source(object):
             return None
         return record.Record(self, length-1)
 
-    def seek(self, start_sector, length=SECTOR_LENGTH):
+    def seek(self, start_sector, length=SECTOR_LENGTH, is_content=False):
         self.cursor = 0
         self._buff = ""
+        do_caching = (not is_content or self.cache_content)
         n_sectors = 1 + (length - 1) // SECTOR_LENGTH
-        for sector in range(start_sector, start_sector + n_sectors):
-            data = self._sectors.get(sector)
-            if data is None:
-                data = self._fetch(sector)
-                self._sectors[sector] = data
+        fetch_sectors = max(self.min_fetch, n_sectors) if do_caching else n_sectors
+        need_start = None
+
+        def fetch_needed(need_count):
+            data = self._fetch(need_start, need_count)
             self._buff += data
+            if do_caching:
+                for sector_idx in xrange(need_count):
+                    self._sectors[need_start + sector_idx] = data[sector_idx*SECTOR_LENGTH:(sector_idx+1)*SECTOR_LENGTH]
+
+        for sector in xrange(start_sector, start_sector + fetch_sectors):
+            if sector in self._sectors:
+                if need_start is not None:
+                    fetch_needed(sector - need_start)
+                    need_start = None
+                # If we've gotten past the sectors we actually need, don't continue to fetch
+                if sector >= start_sector + n_sectors:
+                    break
+                self._buff += self._sectors[sector]
+            elif need_start is None:
+                need_start = sector
+
+        if need_start is not None:
+            fetch_needed(start_sector + fetch_sectors - need_start)
+
         self._buff = self._buff[:length]
 
-    def _fetch(self, sector):
+    def _fetch(self, sector, count=1):
         raise NotImplementedError
 
 
 class FileSource(Source):
-    def __init__(self, path):
-        super(FileSource, self).__init__()
+    def __init__(self, path, **kwargs):
+        super(FileSource, self).__init__(**kwargs)
         self._file = open(path, 'rb')
 
-    def _fetch(self, sector):
+    def _fetch(self, sector, count=1):
         self._file.seek(sector*SECTOR_LENGTH)
-        return self._file.read(SECTOR_LENGTH)
+        return self._file.read(SECTOR_LENGTH*count)
 
 
 class HTTPSource(Source):
-    def __init__(self, url):
-        super(HTTPSource, self).__init__()
+    def __init__(self, url, **kwargs):
+        super(HTTPSource, self).__init__(**kwargs)
         self._url = url
 
-    def _fetch(self, sector):
+    def _fetch(self, sector, count=1):
         opener = urllib.FancyURLopener()
         opener.http_error_206 = lambda *a, **k: None
         opener.addheader("Range", "bytes=%d-%d" % (
             SECTOR_LENGTH * sector,
-            SECTOR_LENGTH * (sector + 1) - 1))
+            SECTOR_LENGTH * (sector + count) - 1))
         return opener.open(self._url).read()
