@@ -1,8 +1,8 @@
 Changelog
 =========
 
-master
-------
+v0.2
+----
 
 - Added fairly comprehensive support for SUSP, and mostly-complete support for
   Rock Ridge. Thanks to Danielle Church for the patch.
