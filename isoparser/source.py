@@ -5,6 +5,7 @@ import urllib
 import path_table
 import record
 import volume_descriptors
+import susp
 
 
 SECTOR_LENGTH = 2048
@@ -21,9 +22,17 @@ class Source(object):
         self.cursor = None
         self.cache_content = cache_content
         self.min_fetch = min_fetch
+        self.susp_starting_index = None
+        self.susp_extensions = []
+        self.rockridge = False
 
     def __len__(self):
         return len(self._buff) - self.cursor
+
+    def rewind_raw(self, l):
+        if self.cursor < l:
+            raise SourceError("Rewind buffer under-run")
+        self.cursor -= l
 
     def unpack_raw(self, l):
         if l > len(self):
@@ -56,6 +65,9 @@ class Source(object):
             return d[0]
         else:
             return d
+
+    def rewind(self, st):
+        self.rewind_raw(struct.calcsize(st))
 
     def unpack_vd_datetime(self):
         return self.unpack_raw(17)  # TODO
@@ -100,10 +112,40 @@ class Source(object):
         return path_table.PathTable(self)
 
     def unpack_record(self):
+        start_cursor = self.cursor
         length = self.unpack('B')
         if length == 0:
+            self.rewind('B')
             return None
-        return record.Record(self, length-1)
+        new_record = record.Record(self, length-1, self.susp_starting_index)
+        assert self.cursor == start_cursor + length
+        return new_record
+
+    def unpack_susp(self, maxlen, possible_extension=0):
+        if maxlen < 4:
+            return None
+        start_cursor = self.cursor
+        signature = self.unpack_raw(2)
+        length = self.unpack('B')
+        version = self.unpack('B')
+        if maxlen < length:
+            self.rewind_raw(4)
+            return None
+        if possible_extension < len(self.susp_extensions):
+            extension = self.susp_extensions[possible_extension]
+            ext_id_ver = (extension.ext_id, extension.ext_ver)
+        else:
+            ext_id_ver = None
+        try:
+            new_susp = susp.SUSP_Entry.unpack(self, ext_id_ver, (signature, version), length - 4)
+        except susp.SUSPError:
+            self.cursor = start_cursor
+            # Fall into the next if statement
+        if self.cursor != start_cursor + length:
+            self.cursor = start_cursor + 4
+            new_susp = susp.UnknownEntry(self, ext_id_ver, (signature, version), length - 4)
+        assert self.cursor == start_cursor + length
+        return new_susp
 
     def seek(self, start_sector, length=SECTOR_LENGTH, is_content=False):
         self.cursor = 0
@@ -136,6 +178,12 @@ class Source(object):
             fetch_needed(start_sector + fetch_sectors - need_start)
 
         self._buff = self._buff[:length]
+
+    def save_cursor(self):
+        return (self._buff, self.cursor)
+
+    def restore_cursor(self, cursor_def):
+        self._buff, self.cursor = cursor_def
 
     def _fetch(self, sector, count=1):
         raise NotImplementedError
