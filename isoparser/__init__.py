@@ -1,5 +1,4 @@
-import iso
-import source
+from isoparser import iso, source
 
 
 def parse(path_or_url, cache_content=False, min_fetch=16):

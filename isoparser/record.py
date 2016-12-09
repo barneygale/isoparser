@@ -1,5 +1,4 @@
-import susp
-import rockridge
+from . import susp, rockridge
 
 class Record(object):
     def __init__(self, source, length, susp_starting_index=None):
@@ -19,7 +18,7 @@ class Record(object):
         _                  = source.unpack('B')       # TODO: interleave gap size
         _                  = source.unpack_both('h')  # TODO: volume sequence
         name_length        = source.unpack('B')
-        self.raw_name      = source.unpack_string(name_length).split(';')[0]
+        self.raw_name      = source.unpack_string(name_length).split(b';')[0]
         if self.raw_name == "\x00":
             self.raw_name = ""
         if name_length % 2 == 0:
@@ -58,7 +57,7 @@ class Record(object):
 
     @property
     def name(self):
-        name = ""
+        name = b""
         for entry in self.susp_entries_unsafe:
             if not isinstance(entry, rockridge.NM):
                 continue
@@ -81,7 +80,7 @@ class Record(object):
         while embedded_iter or target or ce_entry:
             if embedded_iter:
                 try:
-                    entry = embedded_iter.next()
+                    entry = next(embedded_iter)
                 except StopIteration:
                     entry = None
                     embedded_iter = None

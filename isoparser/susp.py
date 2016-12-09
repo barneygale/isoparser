@@ -1,3 +1,5 @@
+from six import add_metaclass
+
 class SUSPError(Exception):
     pass
 
@@ -13,9 +15,9 @@ class susp_meta(type):
                 SUSP_Entry._registered_classes[i] = cls
         return cls
 
+@add_metaclass(susp_meta)
 class SUSP_Entry(object):
     _registered_classes = {}
-    __metaclass__ = susp_meta
     _repr_props = ()
 
     @classmethod
@@ -50,7 +52,7 @@ class UnknownEntry(SUSP_Entry):
 
     @property
     def _repr_keyvals(self):
-        return {'unknown/length':len(self.unknown_raw)+4}.iteritems()
+        return iter({'unknown/length':len(self.unknown_raw)+4}.items())
 
 class SP(SUSP_Entry):
     _implements = [
@@ -62,7 +64,7 @@ class SP(SUSP_Entry):
     def __init__(self, source, ext_id_ver, sig_version, length):
         super(SP, self).__init__(source, ext_id_ver, sig_version, length)
         susp_assert(length == 3)
-        susp_assert(source.unpack_raw(2) == "\xbe\xef")
+        susp_assert(source.unpack_raw(2) == b"\xbe\xef")
         self.len_skp = source.unpack('B')
 
 class CE(SUSP_Entry):
@@ -113,9 +115,9 @@ class ER(SUSP_Entry):
         len_src = source.unpack('B')
         susp_assert(length == 4 + len_id + len_des + len_src)
         self.ext_ver = source.unpack('B')
-        self.ext_id  = source.unpack_raw(len_id)
-        self.ext_des = source.unpack_raw(len_des)
-        self.ext_src = source.unpack_raw(len_src)
+        self.ext_id  = source.unpack_raw(len_id).decode()
+        self.ext_des = source.unpack_raw(len_des).decode()
+        self.ext_src = source.unpack_raw(len_src).decode()
 
 class ES(SUSP_Entry):
     _implements = [
@@ -129,4 +131,4 @@ class ES(SUSP_Entry):
         susp_assert(length == 1)
         self.ext_seq = source.unpack('B')
 
-import rockridge
+from . import rockridge
