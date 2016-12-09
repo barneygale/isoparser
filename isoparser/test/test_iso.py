@@ -2,6 +2,8 @@
 import unittest
 import isoparser
 
+from isoparser.test.test_data import TEST_DATA
+
 
 class TestIso(unittest.TestCase):
     ISO_FILENAME = "isoparser/test/test.iso"
@@ -14,10 +16,6 @@ class TestIso(unittest.TestCase):
                    b'directory': {b'test': b''},
                    b'one': b'',
                    b'something': b"\x01\x98\t\x14\x87\xc6\xee\xd3\x8e\xdfLX\xc2\x04\xd8\xe4f\x1fA\xef\x8c\xc0S\xa2\xe2\x0c\xc3\xad\xec\x8e\x9d\xe1\x1e\xde\x83\x8a\x935\x11\x98\x0c\x97\xd9\x80\x98\xa5\x8c\xac\xb7\x99D\x82HT'\x88x\x85\x91y\x99\xc4E\xc4\x14\xba\xeb\xba\xb3\xc1"}
-
-    @classmethod
-    def setUpClass(cls):
-        cls.iso = isoparser.parse(cls.ISO_FILENAME)
 
     def recursive_test_record(self, record, content):
         self.assertTrue(record.is_directory)
@@ -32,9 +30,11 @@ class TestIso(unittest.TestCase):
                 self.assertEqual(child.content, value)
 
     def test_root(self):
-        self.recursive_test_record(self.iso.root, self.ISO_CONTENT)
-
-        self.assertEqual(len(self.iso.root.children), 8)
+        for filename, content in TEST_DATA:
+            iso = isoparser.parse(filename)
+            self.assertEqual(len(iso.root.children), len(content))
+            self.recursive_test_record(iso.root, content)
+            iso.close()
 
 if __name__ == '__main__':
         unittest.main()
