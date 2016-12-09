@@ -74,7 +74,8 @@ class Source(object):
     def unpack_dir_datetime(self):
         epoch = datetime.datetime(1970, 1, 1)
         date = self.unpack_raw(7)
-        t = [struct.unpack('<B', date[i:i+1])[0] for i in range(len(date)-1)]
+        t = [struct.unpack('<B', bytes([i]) if isinstance(i, int) else i)[0]
+             for i in date]
         t.append(struct.unpack('<b', date[-1:])[0])
         t[0] += 1900
         t_offset = t.pop(-1) * 15 * 60.    # Offset from GMT in 15min intervals, converted to secs
