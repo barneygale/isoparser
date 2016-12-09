@@ -19,8 +19,8 @@ class Record(object):
         _                  = source.unpack_both('h')  # TODO: volume sequence
         name_length        = source.unpack('B')
         self.raw_name      = source.unpack_string(name_length).split(b';')[0]
-        if self.raw_name == "\x00":
-            self.raw_name = ""
+        if self.raw_name == b"\x00":
+            self.raw_name = b""
         if name_length % 2 == 0:
             source.unpack_raw(1) # Parity padding
 
