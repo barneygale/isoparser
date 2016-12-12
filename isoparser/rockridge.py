@@ -1,4 +1,4 @@
-from susp import SUSP_Entry, susp_assert
+from .susp import SUSP_Entry, susp_assert
 
 RRIP_109 = ('RRIP_1991A', 1)
 RRIP_112 = ('IEEE_P1282', 1)

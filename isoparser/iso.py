@@ -1,5 +1,5 @@
-import susp
-import rockridge
+from . import susp, rockridge
+
 
 class ISO(object):
     def __init__(self, source):
