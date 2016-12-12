@@ -1,4 +1,4 @@
-import record
+from . import record
 
 
 class PathTable(object):

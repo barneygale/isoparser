@@ -1,11 +1,10 @@
 import datetime
 import struct
-import urllib
 
-import path_table
-import record
-import volume_descriptors
-import susp
+from six.moves.urllib import request
+from six.moves import range
+
+from . import path_table, record, volume_descriptors, susp
 
 
 SECTOR_LENGTH = 2048
@@ -55,7 +54,7 @@ class Source(object):
         return a
 
     def unpack_string(self, l):
-        return self.unpack_raw(l).rstrip(' ')
+        return self.unpack_raw(l).rstrip(b' ')
 
     def unpack(self, st):
         if st[0] not in '<>':
@@ -75,8 +74,9 @@ class Source(object):
     def unpack_dir_datetime(self):
         epoch = datetime.datetime(1970, 1, 1)
         date = self.unpack_raw(7)
-        t = [struct.unpack('<B', i)[0] for i in date[:-1]]
-        t.append(struct.unpack('<b', date[-1])[0])
+        t = [struct.unpack('<B', bytes([i]) if isinstance(i, int) else i)[0]
+             for i in date]
+        t.append(struct.unpack('<b', date[-1:])[0])
         t[0] += 1900
         t_offset = t.pop(-1) * 15 * 60.    # Offset from GMT in 15min intervals, converted to secs
         t_timestamp = (datetime.datetime(*t) - epoch).total_seconds() - t_offset
@@ -89,11 +89,11 @@ class Source(object):
         identifier = self.unpack_string(5)
         version = self.unpack('B')
 
-        if identifier != "CD001":
+        if identifier != b"CD001":
             raise SourceError("Wrong volume descriptor identifier")
         if version != 1:
             raise SourceError("Wrong volume descriptor version")
-        
+
         if ty == 0:
             vd = volume_descriptors.BootVD(self)
         elif ty == 1:
@@ -125,7 +125,7 @@ class Source(object):
         if maxlen < 4:
             return None
         start_cursor = self.cursor
-        signature = self.unpack_raw(2)
+        signature = self.unpack_raw(2).decode()
         length = self.unpack('B')
         version = self.unpack('B')
         if maxlen < length:
@@ -149,7 +149,7 @@ class Source(object):
 
     def seek(self, start_sector, length=SECTOR_LENGTH, is_content=False):
         self.cursor = 0
-        self._buff = ""
+        self._buff = b""
         do_caching = (not is_content or self.cache_content)
         n_sectors = 1 + (length - 1) // SECTOR_LENGTH
         fetch_sectors = max(self.min_fetch, n_sectors) if do_caching else n_sectors
@@ -159,10 +159,10 @@ class Source(object):
             data = self._fetch(need_start, need_count)
             self._buff += data
             if do_caching:
-                for sector_idx in xrange(need_count):
+                for sector_idx in range(need_count):
                     self._sectors[need_start + sector_idx] = data[sector_idx*SECTOR_LENGTH:(sector_idx+1)*SECTOR_LENGTH]
 
-        for sector in xrange(start_sector, start_sector + fetch_sectors):
+        for sector in range(start_sector, start_sector + fetch_sectors):
             if sector in self._sectors:
                 if need_start is not None:
                     fetch_needed(sector - need_start)
@@ -241,7 +241,7 @@ class HTTPSource(Source):
         return self.get_stream(sector, count*SECTOR_LENGTH).read()
 
     def get_stream(self, sector, length):
-        opener = urllib.FancyURLopener()
+        opener = request.FancyURLopener()
         opener.http_error_206 = lambda *a, **k: None
         opener.addheader("Range", "bytes=%d-%d" % (
             SECTOR_LENGTH * sector,
