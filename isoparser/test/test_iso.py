@@ -24,6 +24,3 @@ class TestIso(unittest.TestCase):
             self.assertEqual(len(iso.root.children), len(content))
             self.recursive_test_record(iso.root, content)
             iso.close()
-
-if __name__ == '__main__':
-        unittest.main()
