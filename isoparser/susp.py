@@ -1,4 +1,4 @@
-from six import add_metaclass
+from six import add_metaclass, iteritems
 
 class SUSPError(Exception):
     pass
@@ -52,7 +52,7 @@ class UnknownEntry(SUSP_Entry):
 
     @property
     def _repr_keyvals(self):
-        return iter({'unknown/length':len(self.unknown_raw)+4}.items())
+        return iteritems({'unknown/length': len(self.unknown_raw)+4})
 
 class SP(SUSP_Entry):
     _implements = [
