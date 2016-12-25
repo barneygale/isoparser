@@ -1,3 +1,4 @@
+from __future__ import unicode_literals
 from .susp import SUSP_Entry, susp_assert
 
 RRIP_109 = ('RRIP_1991A', 1)
@@ -75,7 +76,7 @@ class SL(SUSP_Entry):
         susp_assert(length >= 2) # Needs SL flags and at least one component
         target = source.cursor + length
         self.flags = source.unpack('B')
-        self.path = ""
+        self.path = b""
         while source.cursor < target:
             comp_flags   = source.unpack('B')
             comp_len     = source.unpack('B')
@@ -83,10 +84,10 @@ class SL(SUSP_Entry):
             susp_assert(source.cursor <= target)
             if comp_flags == SL.CURRENT:
                 susp_assert(comp_len == 0)
-                self.path += "."
+                self.path += b"."
             elif comp_flags == SL.PARENT:
                 susp_assert(comp_len == 0)
-                self.path += ".."
+                self.path += b".."
             elif comp_flags == SL.ROOT:
                 susp_assert(comp_len == 0)
             elif comp_flags in (0, SL.CONTINUE):
@@ -103,7 +104,7 @@ class SL(SUSP_Entry):
                 pass
             else:
                 # Otherwise, append a /
-                self.path += "/"
+                self.path += b"/"
 
 class NM(SUSP_Entry):
     _implements = [
