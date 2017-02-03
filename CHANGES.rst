@@ -1,6 +1,11 @@
 Changelog
 =========
 
+v0.3
+----
+
+- Added support for Python 3. Many thanks to Daniel Wozniak and Michał Barciś
+
 v0.2
 ----
 
