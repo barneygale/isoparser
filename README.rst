@@ -25,5 +25,11 @@ Usage
     print iso.record("boot", "grub").children
     print iso.record("boot", "grub", "grub.cfg").content
 
+See Also
+--------
+
+- pycdlib_
+
 .. _`ISO 9660`: https://en.wikipedia.org/wiki/ISO_9660
 .. _`Rock Ridge`: https://en.wikipedia.org/wiki/Rock_Ridge
+..  _`pycdlib`: https://github.com/clalancette/pycdlib
