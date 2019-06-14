@@ -195,9 +195,8 @@ class Source(object):
         pass
 
 
-class FileStream(Source):
+class FileStream(object):
     def __init__(self, file, offset, length):
-        super(FileStream, self).__init__()
         self._file = file
         self._offset = offset
         self._length = length
@@ -212,10 +211,6 @@ class FileStream(Source):
         if data:
             self.cur_offset += len(data)
         return data
-
-    def _fetch(self, sector, count=1):
-        self._file.seek(sector*SECTOR_LENGTH)
-        return self._file.read(SECTOR_LENGTH*count)
 
     def close(self):
         pass
